@@ -1,0 +1,2 @@
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS challenge_format text;
+CREATE INDEX IF NOT EXISTS questions_round_format_idx ON public.questions (game_pack_id, round_type, challenge_format) WHERE active;

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.output/
+.env
+.env.*
+!.env.example
+src.BACKUP/
+supabase.BACKUP/
+*.backup
+kea-test.png
+playmiharo-backup-before-showdown.dump

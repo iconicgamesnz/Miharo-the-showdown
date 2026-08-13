@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.2",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "kiwi-as-showdown",
+      "version": "0.1.0",
+      "title": "Kiwi As Showdown"
+    },
+    "tools": [
+      {
+        "name": "list_characters",
+        "title": "List Kiwi As birds",
+        "description": "List the playable Kiwi As bird characters with their slug, name, tagline, personality, accessory and accent colour.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_game_packs",
+        "title": "List game packs",
+        "description": "List the available Iconic Games question packs, including title, subtitle, description, price in NZD cents and whether the pack is free.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_room_status",
+        "title": "Check room availability",
+        "description": "Check whether a Kiwi As room code is currently valid and what broad stage it is at (lobby, in progress, finished). Returns no player, score, or question information.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "The room code shown on the TV display, e.g. 'K7QM'."
+            }
+          },
+          "required": [
+            "code"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

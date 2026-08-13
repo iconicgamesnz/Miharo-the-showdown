@@ -1,0 +1,313 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * ICONIC GAMES — design system.
+ * Modern NZ television game show x neon arcade.
+ * All colours are oklch tokens. Never hardcode colours in components.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --font-display: "Archivo Black", system-ui, sans-serif;
+  --font-sans: "Space Grotesk", system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+
+  --color-neon-cyan: var(--neon-cyan);
+  --color-neon-lime: var(--neon-lime);
+  --color-neon-magenta: var(--neon-magenta);
+  --color-neon-amber: var(--neon-amber);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.9rem;
+
+  /* Studio darkness */
+  --background: oklch(0.16 0.045 265);
+  --foreground: oklch(0.98 0.005 250);
+  --surface: oklch(0.21 0.05 266);
+  --surface-raised: oklch(0.26 0.055 268);
+
+  --card: oklch(0.21 0.05 266);
+  --card-foreground: oklch(0.98 0.005 250);
+  --popover: oklch(0.21 0.05 266);
+  --popover-foreground: oklch(0.98 0.005 250);
+
+  /* Electric cyan is the brand primary */
+  --primary: oklch(0.82 0.16 200);
+  --primary-foreground: oklch(0.16 0.045 265);
+
+  --secondary: oklch(0.28 0.06 275);
+  --secondary-foreground: oklch(0.98 0.005 250);
+
+  --muted: oklch(0.26 0.05 268);
+  --muted-foreground: oklch(0.75 0.03 260);
+
+  --accent: oklch(0.7 0.24 330);
+  --accent-foreground: oklch(0.98 0.005 250);
+
+  --destructive: oklch(0.62 0.23 25);
+  --destructive-foreground: oklch(0.98 0.005 250);
+
+  --border: oklch(0.34 0.06 268);
+  --input: oklch(0.3 0.055 268);
+  --ring: oklch(0.82 0.16 200);
+
+  --neon-cyan: oklch(0.82 0.16 200);
+  --neon-lime: oklch(0.9 0.2 130);
+  --neon-magenta: oklch(0.7 0.24 330);
+  --neon-amber: oklch(0.86 0.17 90);
+
+  --gradient-studio: radial-gradient(
+      120% 90% at 50% -10%,
+      oklch(0.3 0.09 275 / 0.9) 0%,
+      transparent 60%
+    ),
+    radial-gradient(90% 70% at 100% 110%, oklch(0.35 0.12 330 / 0.35) 0%, transparent 65%),
+    radial-gradient(90% 70% at 0% 110%, oklch(0.35 0.12 200 / 0.3) 0%, transparent 65%);
+  --glow-cyan: 0 0 0 1px oklch(0.82 0.16 200 / 0.35), 0 8px 40px oklch(0.82 0.16 200 / 0.18);
+  --glow-magenta: 0 0 0 1px oklch(0.7 0.24 330 / 0.4), 0 8px 40px oklch(0.7 0.24 330 / 0.2);
+
+  --chart-1: oklch(0.82 0.16 200);
+  --chart-2: oklch(0.9 0.2 130);
+  --chart-3: oklch(0.7 0.24 330);
+  --chart-4: oklch(0.86 0.17 90);
+  --chart-5: oklch(0.65 0.2 275);
+
+  --sidebar: oklch(0.19 0.05 266);
+  --sidebar-foreground: oklch(0.98 0.005 250);
+  --sidebar-primary: oklch(0.82 0.16 200);
+  --sidebar-primary-foreground: oklch(0.16 0.045 265);
+  --sidebar-accent: oklch(0.26 0.055 268);
+  --sidebar-accent-foreground: oklch(0.98 0.005 250);
+  --sidebar-border: oklch(0.34 0.06 268);
+  --sidebar-ring: oklch(0.82 0.16 200);
+}
+
+/* The show is always dark. .dark keeps shadcn variants coherent. */
+.dark {
+  --background: oklch(0.16 0.045 265);
+  --foreground: oklch(0.98 0.005 250);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-background);
+    background-image: var(--gradient-studio);
+    background-attachment: fixed;
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+}
+
+@utility text-glow-cyan {
+  text-shadow: 0 0 24px oklch(0.82 0.16 200 / 0.55);
+}
+
+@utility text-glow-lime {
+  text-shadow: 0 0 24px oklch(0.9 0.2 130 / 0.5);
+}
+
+@utility panel {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+}
+
+@utility panel-glow {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glow-cyan);
+}
+
+/* Screen-reading scale for the TV: readable from several metres away. */
+@utility tv-heading {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 6rem);
+  line-height: 0.95;
+}
+
+@utility tv-subheading {
+  font-size: clamp(1rem, 1.8vw, 2rem);
+}
+
+/* ---- Studio motion: short, TV-style production beats ---- */
+@keyframes ace-in {
+  from {
+    opacity: 0;
+    transform: translate3d(6%, 4%, 0) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes ace-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -1.4%, 0);
+  }
+}
+
+@keyframes ace-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ace-champion-bounce {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-1deg);
+  }
+  50% {
+    transform: translate3d(0, -3%, 0) rotate(1deg);
+  }
+}
+
+@keyframes stage-in {
+  from {
+    opacity: 0;
+    transform: scale(1.035);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes stage-sweep {
+  from {
+    opacity: 0.55;
+    transform: translateX(-120%) skewX(-12deg);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(120%) skewX(-12deg);
+  }
+}
+
+@keyframes confetti-fall {
+  from {
+    transform: translate3d(0, -12vh, 0) rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(0, 112vh, 0) rotate(540deg);
+    opacity: 0.15;
+  }
+}
+
+@utility ace-enter {
+  animation: ace-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility ace-breathe {
+  animation: ace-float 5.5s ease-in-out infinite;
+}
+
+@utility ace-reaction {
+  animation: ace-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@utility ace-celebrate {
+  animation:
+    ace-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    ace-champion-bounce 1.6s ease-in-out 380ms infinite;
+}
+
+@utility stage-enter {
+  animation: stage-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility stage-sweep {
+  animation: stage-sweep 650ms ease-out both;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
