@@ -223,7 +223,7 @@ export function PhoneGame({
 
       <Panel>
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-          {state.round === "sweet_as" ? "Round 1" : "Round 2"}
+          {state.round === "quickie" ? "Quickie" : state.round === "sweet_as" ? "Round 1" : "Round 2"}
         </p>
         <h1 className="mt-1 font-display text-4xl uppercase">{state.roundName}</h1>
         <p className="mt-3 text-muted-foreground">Eyes on the big screen — here we go.</p>
