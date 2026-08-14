@@ -81,7 +81,7 @@ export const QUICKIE_ROUNDS: RoundDefinition[] = [
   {
     type: "quickie",
     order: 1,
-    name: "Kiwi As Quickie",
+    name: "Kiwi As — Boost It Free",
     tagline: "Ten challenges, one winner",
     questionCount: 10,
     defaultTimerSeconds: 18,

@@ -121,12 +121,12 @@ async function sendAccessCodeEmail({
       text: [
         "Kia ora!",
         "",
-        "Your Kiwi As — Full Game purchase is ready.",
+        "Your Kiwi As — Full Showdown purchase is ready.",
         "",
         `ACCESS CODE: ${code}`,
         "",
         "Go to https://showdown.playmiharo.co.nz",
-        "Enter this code to launch the Full Game.",
+        "Enter this code to launch the Full Showdown.",
         "",
         "Your purchase is permanent, so keep this email.",
         "Up to 6 players can join each game.",
@@ -145,7 +145,7 @@ async function sendAccessCodeEmail({
           </h1>
 
           <p style="font-size:18px">
-            Kia ora! Your <strong>Kiwi As — Full Game</strong> purchase is ready.
+            Kia ora! Your <strong>Kiwi As — Full Showdown</strong> purchase is ready.
           </p>
 
           <div style="margin:32px 0;padding:24px;border:2px solid #39d9ff;border-radius:16px;text-align:center">

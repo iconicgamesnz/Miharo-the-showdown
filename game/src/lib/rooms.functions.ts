@@ -63,7 +63,7 @@ export const createRoom = createServerFn({ method: "POST" })
           .maybeSingle();
 
         if (!accessCode) {
-          throw new Error("That Full Game access code isn't valid.");
+          throw new Error("That Full Showdown access code isn't valid.");
         }
 
         accessCodeId = accessCode.id;
@@ -91,10 +91,10 @@ export const createRoom = createServerFn({ method: "POST" })
           .maybeSingle();
 
         if (!entitlement) {
-          throw new Error("Kiwi As — Full Game isn't unlocked on this account yet.");
+          throw new Error("Kiwi As — Full Showdown isn't unlocked on this account yet.");
         }
       } else {
-        throw new Error("Enter your Full Game access code.");
+        throw new Error("Enter your Full Showdown access code.");
       }
     }
 

@@ -15,7 +15,7 @@ const purchaseStatusInput = z.object({
 async function authenticatedUser(accessToken: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
-  if (error || !data.user) throw new Error("Sign in before buying the full game.");
+  if (error || !data.user) throw new Error("Sign in before buying the Full Showdown.");
   return data.user;
 }
 
@@ -132,7 +132,7 @@ export const createFullGameCheckout = createServerFn({ method: "POST" })
     form.set("line_items[0][price_data][product_data][name]", pack.title);
     form.set(
       "line_items[0][price_data][product_data][description]",
-      "One-time host unlock for Kiwi As — Full Game",
+      "One-time host unlock for Kiwi As — Full Showdown",
     );
 
     const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {

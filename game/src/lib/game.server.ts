@@ -72,11 +72,11 @@ export type RoundConfig = {
 export const ROUNDS: Record<EngineRound, RoundConfig> = {
   quickie: {
     round: "quickie",
-    name: "Kiwi As Quickie",
+    name: "Kiwi As — Boost It Free",
     questionCount: 10,
     timerSeconds: 12,
     introMs: 3000,
-    introLines: ["The Quickie.", "Ten challenges. One winner. Sweet as."],
+    introLines: ["Boost It Free.", "Ten challenges. One winner. Sweet as."],
     lockPauseMs: 350,
     revealMs: 2400,
     lateGraceMs: 1200,
