@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mīharo: The Showdown</title>
+
+  <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #05070c;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    #show {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: none;
+      background: #05070c;
+    }
+
+    #waiting {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      background:
+        radial-gradient(circle at center, #102548 0%, #05070c 55%);
+    }
+
+    .eyebrow {
+      letter-spacing: .35em;
+      text-transform: uppercase;
+      opacity: .65;
+      font-size: 18px;
+    }
+
+    h1 {
+      margin: 18px 0 8px;
+      font-size: clamp(48px, 8vw, 110px);
+      text-transform: uppercase;
+    }
+
+    .accent {
+      color: #39d9ff;
+    }
+
+    p {
+      font-size: 26px;
+      opacity: .8;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="waiting">
+    <div>
+      <div class="eyebrow">Iconic Games presents</div>
+      <h1>Mīharo<br><span class="accent">The Showdown</span></h1>
+      <p>Ready to cast.</p>
+    </div>
+  </div>
+
+  <iframe
+    id="show"
+    allow="autoplay; fullscreen"
+    title="Mīharo: The Showdown TV display"
+  ></iframe>
+
+  <script>
+    const NAMESPACE = "urn:x-cast:co.nz.playmiharo.showdown";
+
+    const context = cast.framework.CastReceiverContext.getInstance();
+    const waiting = document.getElementById("waiting");
+    const show = document.getElementById("show");
+
+    context.addCustomMessageListener(NAMESPACE, (event) => {
+      const message = event.data || {};
+
+      if (message.type !== "LOAD_ROOM") return;
+
+      const code = String(message.code || "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "")
+        .slice(0, 8);
+
+      if (!code) return;
+
+      show.src =
+        "/display/" +
+        encodeURIComponent(code) +
+        "?cast=1";
+
+      waiting.style.display = "none";
+      show.style.display = "block";
+    });
+
+    context.start({
+      disableIdleTimeout: true
+    });
+  </script>
+</body>
+</html>
