@@ -9,6 +9,17 @@ import {
   sanitizeNickname,
 } from "@/lib/rooms.server";
 
+async function hashAccessCode(code: string) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(code.trim().toUpperCase()),
+  );
+
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 /**
  * All room mutations run here. The browser has read-only access to rooms and
  * players via RLS; every write goes through these authoritative handlers.
@@ -16,7 +27,11 @@ import {
 
 export const createRoom = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
-    z.object({ packSlug: z.enum(["kiwi-as-quickie", "kiwi-as-full"]), accessToken: z.string().min(20).optional() }).parse(input),
+    z.object({
+      packSlug: z.enum(["kiwi-as-quickie", "kiwi-as-full"]),
+      accessToken: z.string().min(20).optional(),
+      accessCode: z.string().min(8).max(32).optional(),
+    }).parse(input),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -28,18 +43,57 @@ export const createRoom = createServerFn({ method: "POST" })
       .maybeSingle();
     if (packError || !pack) throw new Error("That game pack isn't available.");
 
+    let accessCodeId: string | null = null;
+    let accessMaxPlayers = ROOM_RULES.maxPlayers;
+
     if (!pack.is_free) {
-      if (!data.accessToken) throw new Error("Sign in to play the full game.");
-      const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(data.accessToken);
-      if (authError || !authData.user) throw new Error("Your sign-in expired. Please sign in again.");
-      const { data: entitlement } = await supabaseAdmin
-        .from("pack_entitlements")
-        .select("id")
-        .eq("user_id", authData.user.id)
-        .eq("game_pack_id", pack.id)
-        .is("revoked_at", null)
-        .maybeSingle();
-      if (!entitlement) throw new Error("Kiwi As — Full Game isn't unlocked on this account yet.");
+      if (data.accessCode) {
+        const normalizedAccessCode = data.accessCode.trim().toUpperCase();
+        const codeHash = await hashAccessCode(normalizedAccessCode);
+
+        const { data: accessCode } = await supabaseAdmin
+          .from("pack_access_codes")
+          .select("id, max_players")
+          .eq("code_hash", codeHash)
+          .eq("game_pack_id", pack.id)
+          .eq("active", true)
+          .is("revoked_at", null)
+          .maybeSingle();
+
+        if (!accessCode) {
+          throw new Error("That Full Game access code isn't valid.");
+        }
+
+        accessCodeId = accessCode.id;
+        accessMaxPlayers = Math.min(accessCode.max_players ?? ROOM_RULES.maxPlayers, ROOM_RULES.maxPlayers);
+
+        await supabaseAdmin
+          .from("pack_access_codes")
+          .update({ last_used_at: new Date().toISOString() })
+          .eq("id", accessCode.id);
+      } else if (data.accessToken) {
+        // Legacy account ownership still works during the transition.
+        const { data: authData, error: authError } =
+          await supabaseAdmin.auth.getUser(data.accessToken);
+
+        if (authError || !authData.user) {
+          throw new Error("Your sign-in expired.");
+        }
+
+        const { data: entitlement } = await supabaseAdmin
+          .from("pack_entitlements")
+          .select("id")
+          .eq("user_id", authData.user.id)
+          .eq("game_pack_id", pack.id)
+          .is("revoked_at", null)
+          .maybeSingle();
+
+        if (!entitlement) {
+          throw new Error("Kiwi As — Full Game isn't unlocked on this account yet.");
+        }
+      } else {
+        throw new Error("Enter your Full Game access code.");
+      }
     }
 
     const hostToken = generateToken();
@@ -55,7 +109,8 @@ export const createRoom = createServerFn({ method: "POST" })
           code: candidate,
           game_pack_id: pack.id,
           host_token_hash: hostTokenHash,
-          max_players: ROOM_RULES.maxPlayers,
+          max_players: accessMaxPlayers,
+          access_code_id: accessCodeId,
         })
         .select("id, code")
         .maybeSingle();

@@ -43,10 +43,145 @@ type StripeEvent = {
       payment_intent?: string | null;
       amount?: number;
       amount_refunded?: number;
+      customer_email?: string | null;
+      customer_details?: {
+        email?: string | null;
+      } | null;
       metadata?: Record<string, string>;
     };
   };
 };
+
+
+const ACCESS_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+/**
+ * A purchase always generates the same human-friendly code.
+ * The raw code is never stored in Supabase — only its SHA-256 hash.
+ */
+async function accessCodeForPurchase(purchaseId: string, secret: string) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+
+  const digest = new Uint8Array(
+    await crypto.subtle.sign(
+      "HMAC",
+      key,
+      new TextEncoder().encode(`showdown-access:${purchaseId}`),
+    ),
+  );
+
+  const chars = Array.from(digest.slice(0, 8))
+    .map((byte) => ACCESS_CODE_ALPHABET[byte % ACCESS_CODE_ALPHABET.length])
+    .join("");
+
+  return `MIH-${chars.slice(0, 4)}-${chars.slice(4, 8)}`;
+}
+
+async function hashAccessCode(code: string) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(code.trim().toUpperCase()),
+  );
+  return bytesToHex(digest);
+}
+
+async function sendAccessCodeEmail({
+  email,
+  code,
+  purchaseId,
+}: {
+  email: string;
+  code: string;
+  purchaseId: string;
+}) {
+  const apiKey = process.env["RESEND_API_KEY"];
+  const from = process.env["RESEND_FROM_EMAIL"];
+
+  if (!apiKey || !from) {
+    throw new Error("Resend email is not configured.");
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "Idempotency-Key": `showdown-access/${purchaseId}`,
+    },
+    body: JSON.stringify({
+      from,
+      to: [email],
+      subject: "Your Mīharo: The Showdown access code",
+      text: [
+        "Kia ora!",
+        "",
+        "Your Kiwi As — Full Game purchase is ready.",
+        "",
+        `ACCESS CODE: ${code}`,
+        "",
+        "Go to https://showdown.playmiharo.co.nz",
+        "Enter this code to launch the Full Game.",
+        "",
+        "Your purchase is permanent, so keep this email.",
+        "Up to 6 players can join each game.",
+        "",
+        "Mīharo: The Showdown",
+        "An Iconic Games platform",
+      ].join("\n"),
+      html: `
+        <div style="font-family:Arial,sans-serif;background:#05070c;color:#ffffff;padding:32px;max-width:620px;margin:auto">
+          <p style="font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:#8c9aac">
+            ICONIC GAMES PRESENTS
+          </p>
+
+          <h1 style="font-size:34px;margin-bottom:8px">
+            Mīharo: The Showdown
+          </h1>
+
+          <p style="font-size:18px">
+            Kia ora! Your <strong>Kiwi As — Full Game</strong> purchase is ready.
+          </p>
+
+          <div style="margin:32px 0;padding:24px;border:2px solid #39d9ff;border-radius:16px;text-align:center">
+            <p style="margin:0 0 10px;font-size:12px;letter-spacing:.25em;color:#8c9aac">
+              YOUR PERMANENT ACCESS CODE
+            </p>
+            <div style="font-size:34px;font-weight:800;letter-spacing:.12em;color:#39d9ff">
+              ${code}
+            </div>
+          </div>
+
+          <p>
+            Enter this code at
+            <strong>showdown.playmiharo.co.nz</strong>
+            to launch the Full Game.
+          </p>
+
+          <p>
+            Your purchase is permanent, so keep this email.
+            Up to 6 players can join each Showdown.
+          </p>
+
+          <p style="margin-top:32px;color:#8c9aac">
+            Mīharo: The Showdown<br>
+            An Iconic Games platform
+          </p>
+        </div>
+      `,
+    }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Couldn't send access email (${response.status}): ${detail.slice(0, 200)}`);
+  }
+}
 
 async function alreadyProcessed(eventId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -61,10 +196,9 @@ async function markProcessed(eventId: string, eventType: string) {
 
 async function handleCheckoutCompleted(session: NonNullable<StripeEvent["data"]>["object"]) {
   if (!session?.id || session.payment_status !== "paid") return;
-  const userId = session.metadata?.user_id;
   const packId = session.metadata?.game_pack_id;
   const purchaseId = session.metadata?.purchase_id;
-  if (!userId || !packId || !purchaseId) throw new Error("Checkout metadata missing purchase identity");
+  if (!packId || !purchaseId) throw new Error("Checkout metadata missing purchase identity");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: purchase } = await supabaseAdmin.from("purchases")
@@ -76,20 +210,60 @@ async function handleCheckoutCompleted(session: NonNullable<StripeEvent["data"]>
       refunded_at: null,
     })
     .eq("id", purchaseId)
-    .eq("user_id", userId)
     .eq("game_pack_id", packId)
     .eq("provider", "stripe")
-    .select("id")
+    .select("id, user_id, customer_email")
     .maybeSingle();
   if (!purchase) throw new Error("Purchase not found for completed checkout");
 
-  await supabaseAdmin.from("pack_entitlements").upsert({
-    user_id: userId,
-    game_pack_id: packId,
-    purchase_id: purchase.id,
-    revoked_at: null,
-    granted_at: new Date().toISOString(),
-  }, { onConflict: "user_id,game_pack_id" });
+  // Keep legacy account ownership working for older signed-in purchases.
+  if (purchase.user_id) {
+    await supabaseAdmin.from("pack_entitlements").upsert({
+      user_id: purchase.user_id,
+      game_pack_id: packId,
+      purchase_id: purchase.id,
+      revoked_at: null,
+      granted_at: new Date().toISOString(),
+    }, { onConflict: "user_id,game_pack_id" });
+  }
+
+  const customerEmail =
+    session.customer_details?.email?.trim().toLowerCase() ??
+    session.customer_email?.trim().toLowerCase() ??
+    purchase.customer_email?.trim().toLowerCase();
+
+  if (!customerEmail) {
+    throw new Error("Completed checkout has no customer email.");
+  }
+
+  const accessSecret = process.env["STRIPE_WEBHOOK_SECRET"];
+  if (!accessSecret) throw new Error("Access-code secret is unavailable.");
+
+  const accessCode = await accessCodeForPurchase(purchase.id, accessSecret);
+  const codeHash = await hashAccessCode(accessCode);
+
+  const { error: codeError } = await supabaseAdmin
+    .from("pack_access_codes")
+    .upsert({
+      purchase_id: purchase.id,
+      game_pack_id: packId,
+      customer_email: customerEmail,
+      code_hash: codeHash,
+      code_hint: accessCode.slice(-4),
+      max_players: 6,
+      active: true,
+      revoked_at: null,
+    }, { onConflict: "purchase_id" });
+
+  if (codeError) {
+    throw new Error(`Couldn't create access code: ${codeError.message}`);
+  }
+
+  await sendAccessCodeEmail({
+    email: customerEmail,
+    code: accessCode,
+    purchaseId: purchase.id,
+  });
 }
 
 async function handleCheckoutExpired(session: NonNullable<StripeEvent["data"]>["object"]) {
@@ -122,6 +296,10 @@ async function handleChargeRefunded(charge: NonNullable<StripeEvent["data"]>["ob
   await Promise.all([
     supabaseAdmin.from("purchases").update({ status: "refunded", refunded_at: now }).eq("id", purchase.id),
     supabaseAdmin.from("pack_entitlements").update({ revoked_at: now }).eq("purchase_id", purchase.id).is("revoked_at", null),
+    supabaseAdmin
+      .from("pack_access_codes")
+      .update({ active: false, revoked_at: now })
+      .eq("purchase_id", purchase.id),
   ]);
 }
 
