@@ -9,3 +9,5 @@ supabase.BACKUP/
 *.backup
 kea-test.png
 playmiharo-backup-before-showdown.dump
+.vercel
+.env*

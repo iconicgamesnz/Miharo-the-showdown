@@ -57,6 +57,7 @@ export type PublicQuestion = {
   sessionQuestionId: string;
   number: number;
   type: string;
+  category: string | null;
   /** Interaction/presentation format; drives which control the phone renders. */
   format: ChallengeFormat;
   text: string;

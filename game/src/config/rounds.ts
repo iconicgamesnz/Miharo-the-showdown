@@ -48,7 +48,7 @@ export const FULL_GAME_ROUNDS: RoundDefinition[] = [
   {
     type: "yeah_nah",
     order: 3,
-    name: "Yeah Nah",
+    name: "Quick As",
     tagline: "Rapid fire, gut instinct",
     questionCount: 8,
     defaultTimerSeconds: 5,
@@ -96,7 +96,7 @@ export const SCORING = {
   /** Choice, Bro ordering challenges are worth more — all-or-nothing. */
   orderingCorrect: 1500,
   maxSpeedBonus: 500,
-  /** Yeah Nah is fast and cheap: 750 base + up to 250 speed = 1,000 before Heat. */
+  /** Quick As is fast and cheap: 750 base + up to 250 speed = 1,000 before Heat. */
   yeahNahCorrect: 750,
   yeahNahMaxSpeed: 250,
   streak: { 2: 100, 3: 200, 4: 300, 5: 400 } as Record<number, number>,

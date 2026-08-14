@@ -86,7 +86,7 @@ export const ROUNDS: Record<EngineRound, RoundConfig> = {
   sweet_as: {
     round: "sweet_as",
     name: "Sweet As",
-    questionCount: 5,
+    questionCount: 7,
     timerSeconds: 12,
     introMs: 3500,
     introLines: ["Sweet As.", "Let's see what you know."],
@@ -99,7 +99,7 @@ export const ROUNDS: Record<EngineRound, RoundConfig> = {
   choice_bro: {
     round: "choice_bro",
     name: "Choice, Bro",
-    questionCount: 5,
+    questionCount: 6,
     timerSeconds: 12,
     introMs: 3500,
     introLines: ["Choice, Bro.", "Things are about to get a little trickier."],
@@ -108,20 +108,20 @@ export const ROUNDS: Record<EngineRound, RoundConfig> = {
     orderingRevealMs: 4000,
     lateGraceMs: 1200,
     next: "yeah_nah",
-    nextName: "Yeah Nah",
+    nextName: "Quick As",
   },
-  // Yeah Nah is the fastest round in the show: 5s statements, a ~300ms beat and
+  // Quick As is the fastest round in the show: 5s statements, a ~300ms beat and
   // a two-second verdict, so eight statements land in about a minute.
   yeah_nah: {
     round: "yeah_nah",
-    name: "Yeah Nah",
-    questionCount: 8,
+    name: "Quick As",
+    questionCount: 10,
     timerSeconds: 5,
-    introMs: 3000,
-    introLines: ["Yeah Nah.", "Trust your gut."],
-    lockPauseMs: 300,
-    revealMs: 2000,
-    lateGraceMs: 900,
+    introMs: 2200,
+    introLines: ["Quick As ⚡", "Ten questions. Five seconds each. Go with your gut."],
+    lockPauseMs: 150,
+    revealMs: 1200,
+    lateGraceMs: 300,
     next: "mana",
     nextName: "Put Your Mana Where Your Mouth Is",
   },
@@ -130,7 +130,7 @@ export const ROUNDS: Record<EngineRound, RoundConfig> = {
   mana: {
     round: "mana",
     name: "Put Your Mana Where Your Mouth Is",
-    questionCount: 5,
+    questionCount: 7,
     timerSeconds: 12,
     introMs: 5000,
     introLines: [
@@ -365,7 +365,7 @@ export async function createRoundQuestions(
 
   let poolQuery = admin
     .from("questions")
-    .select("id, challenge_format, correct_answer")
+    .select("id, category, challenge_format, correct_answer")
     .eq("game_pack_id", packId)
     .eq("round_type", round)
     .eq("active", true);
@@ -386,6 +386,30 @@ export async function createRoundQuestions(
   const all = pool ?? [];
   const available = all.filter((q) => !used.has(q.id));
   if (available.length === 0) throw new Error(`No ${cfg.name} challenges are available yet.`);
+
+  const pickAcrossCategories = (items: typeof available, count: number) => {
+    const byCategory = new Map<string, typeof available>();
+
+    for (const question of items) {
+      const key = question.category?.trim() || "Random As";
+      byCategory.set(key, [...(byCategory.get(key) ?? []), question]);
+    }
+
+    const buckets = shuffle(
+      [...byCategory.values()].map((bucket) => shuffle(bucket))
+    );
+
+    const picked: typeof available = [];
+
+    for (let pass = 0; picked.length < count && pass < 20; pass += 1) {
+      for (const bucket of buckets) {
+        const next = bucket[pass];
+        if (next && picked.length < count) picked.push(next);
+      }
+    }
+
+    return picked.slice(0, count);
+  };
 
   let chosen: { id: string; challenge_format: string | null }[];
 
@@ -428,7 +452,7 @@ export async function createRoundQuestions(
     }
     chosen = spreadFormats(picked).slice(0, cfg.questionCount);
   } else {
-    chosen = shuffle(available).slice(0, Math.min(cfg.questionCount, available.length));
+    chosen = pickAcrossCategories(available, Math.min(cfg.questionCount, available.length));
   }
 
 
@@ -498,7 +522,7 @@ type SessionQuestionRow = {
 };
 
 const QUESTION_SELECT =
-  "id, sequence, question_id, questions(id, question_text, question_type, challenge_format, answer_options, correct_answer, explanation, timer_seconds)";
+  "id, sequence, question_id, questions(id, category, question_text, question_type, challenge_format, answer_options, correct_answer, explanation, timer_seconds)";
 
 async function loadSessionQuestion(admin: Admin, sessionId: string, sequence: number) {
   const { data } = await admin
@@ -565,7 +589,7 @@ function toPublicQuestion(row: SessionQuestionRow, number: number, timerSeconds:
   // persisted into session state — every device (TV and every phone) renders
   // that same list, and grading matches on the stable option key, never on a
   // position. Clients never reshuffle.
-  // Yeah Nah is the exception: canonical YEAH left, NAH right, always.
+  // Quick As is the exception: canonical YEAH left, NAH right, always.
   const raw = rawOptions(q).map((o) => ({ key: String(o.key), text: String(o.text) }));
   const options = format === "yeah_nah" ? YEAH_NAH_OPTIONS.map((o) => ({ ...o })) : shuffle(raw);
 
@@ -573,6 +597,7 @@ function toPublicQuestion(row: SessionQuestionRow, number: number, timerSeconds:
     sessionQuestionId: row.id,
     number,
     type: q.question_type,
+    category: q.category ?? null,
     format,
     text: q.question_text,
     options,
@@ -913,7 +938,7 @@ async function gradeQuestion(admin: Admin, session: SessionRow, fromPhase: GameP
   const correctRaw = q.correct_answer as { key?: string; order?: string[] } | string | null;
   const rawCorrectKey =
     typeof correctRaw === "string" ? correctRaw : String(correctRaw?.key ?? "");
-  // Yeah Nah stores TRUE/FALSE in a few shapes across the bank; fold them onto
+  // Quick As stores TRUE/FALSE in a few shapes across the bank; fold them onto
   // the two canonical keys the players actually tapped.
   const correctKey = format === "yeah_nah" ? canonicalYeahNah(rawCorrectKey) : rawCorrectKey;
   const correctOrder =
@@ -1500,7 +1525,7 @@ export async function recordAnswer(
     answer = { order };
   } else {
     const submitted = submission.optionKey ?? "";
-    // Fold Yeah Nah onto canonical keys, then require the key to be one of the
+    // Fold Quick As onto canonical keys, then require the key to be one of the
     // options this exact question actually showed. Nothing positional is used.
     const key =
       state.question.format === "yeah_nah" && submitted ? canonicalYeahNah(submitted) : submitted;

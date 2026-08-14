@@ -653,10 +653,10 @@ export function TvGame({
         <header className="flex items-end justify-between gap-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.4em] text-neon-magenta">
-              <KiwiAsWordmark /> · Yeah Nah · Trust your gut
+              <KiwiAsWordmark /> · Quick As ⚡ · {question.category ?? "Random As"}
             </p>
             <p className="font-display text-2xl tracking-widest text-muted-foreground">
-              STATEMENT {question.number} OF {state.total}
+              {question.category?.toUpperCase() ?? "RANDOM AS"} · QUESTION {question.number} OF {state.total}
             </p>
           </div>
           {!revealing ? (
@@ -728,7 +728,7 @@ export function TvGame({
             <KiwiAsWordmark /> · {state.roundName} · {formatLabel(question.format)}
           </p>
           <p className="font-display text-2xl tracking-widest text-muted-foreground">
-            CHALLENGE {question.number} OF {state.total}
+            {question.category?.toUpperCase() ?? "RANDOM AS"} · QUESTION {question.number} OF {state.total}
           </p>
         </div>
         {!revealing ? (
