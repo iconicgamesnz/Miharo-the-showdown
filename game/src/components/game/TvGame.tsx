@@ -110,6 +110,8 @@ export function TvGame({
     if (phase === "question_locked") soundManager.playEvent("answer_lock");
     if (phase === "answer_reveal") soundManager.playEvent("correct");
     if (phase === "round_complete") soundManager.playEvent("leaderboard_move");
+    if (phase === "question_value" && state.index === 0) soundManager.playEvent("showdown");
+    if (phase === "game_over") soundManager.playEvent("winner_fanfare");
   }, [phase, state.index]);
 
   useEffect(() => {
@@ -366,13 +368,17 @@ export function TvGame({
                 );
               })}
             </div>
+            <p className="font-display text-[clamp(2rem,6vh,5rem)] uppercase tracking-[0.12em] text-neon-lime text-glow-cyan">
+              THAT WAS ICONIC.
+            </p>
+
             <AceStage
               slot="celebrating"
               size="presenter"
               line={
                 champions.length > 1
-                  ? "Can't split 'em — you're both iconic."
-                  : `${champions[0]?.nickname ?? "You"}, you're absolutely iconic.`
+                  ? `Congratulations ${champions.map((row) => row.nickname).join(" & ")} — ${(champions[0]?.score ?? 0).toLocaleString()} points. THAT WAS ICONIC.`
+                  : `Congratulations ${champions[0]?.nickname ?? "champion"} — ${(champions[0]?.score ?? 0).toLocaleString()} points. THAT WAS ICONIC.`
               }
             />
             {hostControls}
@@ -715,9 +721,12 @@ export function TvGame({
 
         <div className="mt-auto flex items-end justify-between gap-6">
           {playerStrip}
-          {revealing && aceLine && (correctCount === 0 || correctCount === graded.length || correctCount === 1 || bigStreak) && (
-            <AceStage slot={aceSlot} size="reaction" line={aceLine} className="flex" />
-          )}
+          <AceStage
+            slot={revealing ? aceSlot : "pointing"}
+            size="reaction"
+            {...(revealing && aceLine ? { line: aceLine } : {})}
+            className="flex shrink-0"
+          />
         </div>
       </section>
     );
@@ -814,7 +823,12 @@ export function TvGame({
 
       <div className="mt-auto flex items-end justify-between gap-6">
         {playerStrip}
-        {revealing && <AceStage slot={aceSlot} size="reaction" {...(aceLine ? { line: aceLine } : {})} className="flex" />}
+        <AceStage
+          slot={revealing ? aceSlot : "pointing"}
+          size="reaction"
+          {...(revealing && aceLine ? { line: aceLine } : {})}
+          className="flex shrink-0"
+        />
       </div>
     </section>
   );
