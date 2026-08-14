@@ -31,6 +31,8 @@ export const createRoom = createServerFn({ method: "POST" })
       packSlug: z.enum(["kiwi-as-quickie", "kiwi-as-full"]),
       accessToken: z.string().min(20).optional(),
       accessCode: z.string().min(8).max(32).optional(),
+      hostNickname: z.string().min(1).max(20).optional(),
+      hostCharacterSlug: z.string().min(2).max(20).optional(),
     }).parse(input),
   )
   .handler(async ({ data }) => {
@@ -96,6 +98,27 @@ export const createRoom = createServerFn({ method: "POST" })
       }
     }
 
+    let hostNickname: string | null = null;
+    let hostCharacter: { id: string; slug: string; name: string } | null = null;
+
+    if (data.hostNickname || data.hostCharacterSlug) {
+      if (!data.hostNickname || !data.hostCharacterSlug) {
+        throw new Error("Choose your nickname and bird first.");
+      }
+
+      hostNickname = sanitizeNickname(data.hostNickname);
+      if (!hostNickname) throw new Error("Pop in a nickname first.");
+
+      const { data: character } = await supabaseAdmin
+        .from("characters")
+        .select("id, slug, name")
+        .eq("slug", data.hostCharacterSlug)
+        .maybeSingle();
+
+      if (!character) throw new Error("Pick one of the birds.");
+      hostCharacter = character;
+    }
+
     const hostToken = generateToken();
     const hostTokenHash = await hashToken(hostToken);
 
@@ -137,7 +160,52 @@ export const createRoom = createServerFn({ method: "POST" })
       properties: { pack: pack.slug },
     });
 
-    return { code, roomId, hostToken, packTitle: pack.title };
+    let playerToken: string | null = null;
+    let playerId: string | null = null;
+
+    if (hostNickname && hostCharacter) {
+      playerToken = generateToken();
+      const playerTokenHash = await hashToken(playerToken);
+
+      const { data: player, error: playerError } = await supabaseAdmin
+        .from("room_players")
+        .insert({
+          room_id: roomId,
+          character_id: hostCharacter.id,
+          nickname: hostNickname,
+          player_token_hash: playerTokenHash,
+          status: "ready",
+          is_host: true,
+        })
+        .select("id")
+        .maybeSingle();
+
+      if (playerError || !player) {
+        await supabaseAdmin.from("rooms").delete().eq("id", roomId);
+        throw new Error("Couldn't create your player seat. Try again.");
+      }
+
+      playerId = player.id;
+
+      await supabaseAdmin.from("analytics_events").insert({
+        event_key: "player_joined",
+        room_id: roomId,
+        game_pack_id: pack.id,
+        properties: {
+          character: hostCharacter.slug,
+          host: true,
+        },
+      });
+    }
+
+    return {
+      code,
+      roomId,
+      hostToken,
+      playerToken,
+      playerId,
+      packTitle: pack.title,
+    };
   });
 
 export const getRoomSummary = createServerFn({ method: "POST" })
