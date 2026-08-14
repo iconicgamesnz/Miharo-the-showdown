@@ -130,7 +130,7 @@ export function TvGame({
             Round {roundNumber}
           </p>
           <h1 className="tv-heading uppercase leading-[1.05]">Put Your Mana Where Your Mouth Is</h1>
-          <AceStage slot="pointing" size="presenter" line={line1 ?? "Think you know your stuff?"} />
+          <AceStage slot="pointing" size="presenter" line={line1 ?? "Alright team — time to back yourselves."} />
           <p className="tv-subheading text-muted-foreground">
             {line2 ?? "Time to put your mana where your mouth is."}
           </p>
@@ -161,8 +161,8 @@ export function TvGame({
           <p className="text-sm font-semibold uppercase tracking-[0.4em] text-neon-magenta">
             Round {roundNumber}
           </p>
-          <h1 className="tv-heading uppercase tracking-[0.1em] text-glow-cyan">Yeah Nah</h1>
-          <AceStage slot="excited" size="presenter" line={line1 ?? "Right. No mucking around."} />
+          <h1 className="tv-heading uppercase tracking-[0.1em] text-glow-cyan">Quick As ⚡</h1>
+          <AceStage slot="excited" size="presenter" line={line1 ?? "Quick As. Five seconds. Trust your gut."} />
           <p className="tv-subheading text-muted-foreground">{line2}</p>
           {seconds <= 4 ? (
             <p aria-live="polite" className="font-display text-[clamp(4rem,14vh,10rem)] leading-none text-neon-lime">
@@ -199,7 +199,7 @@ export function TvGame({
               </li>
             ))}
           </ol>
-          <AceStage slot="pointing" assetOverride="/production/ace/final.webp" size="presenter" className="ace-enter" line={line1 ?? "This is where it's won or lost."} />
+          <AceStage slot="pointing" assetOverride="/production/ace/final.webp" size="presenter" className="ace-enter" line={line1 ?? "This is it. Everything comes down to The Final."} />
           <p aria-live="polite" className="font-display text-3xl text-primary">
             Starting in {Math.max(1, seconds)}
           </p>
@@ -248,7 +248,7 @@ export function TvGame({
             Last question. Everything's on the line.
           </p>
         )}
-        <AceStage slot="pointing" assetOverride="/production/ace/final.webp" size="reaction" line={last ? "This is the one." : "Eyes up."} />
+        <AceStage slot="pointing" assetOverride="/production/ace/final.webp" size="reaction" line={last ? "Last one. Make it iconic." : "Here we go."} />
       </section>
     );
   }
@@ -289,7 +289,11 @@ export function TvGame({
               size="lg"
             />
           )}
-          <AceStage slot="celebrating" size="presenter" line="Good on ya. Go again?" />
+          <AceStage
+            slot="celebrating"
+            size="presenter"
+            line={`Congratulations ${me?.nickname ?? "champion"} — ${(me?.score ?? 0).toLocaleString()} points. THAT WAS ICONIC.`}
+          />
           {hostControls}
         </section>
       );
@@ -523,7 +527,7 @@ export function TvGame({
             );
           })}
         </ul>
-        <AceStage slot="excited" size="reaction" line="Let's see who's cooked." />
+        <AceStage slot="excited" size="reaction" line="Risks are locked. Let’s see who backed themselves." />
       </section>
     );
   }

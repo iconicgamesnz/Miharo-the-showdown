@@ -199,7 +199,7 @@ export function PhoneGame({
       return (
         <Panel>
           <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Round 3</p>
-          <h1 className="mt-1 font-display text-5xl uppercase">Yeah Nah</h1>
+          <h1 className="mt-1 font-display text-5xl uppercase">Quick As ⚡</h1>
           <p className="mt-3 font-display text-2xl text-neon-magenta">Trust your gut.</p>
           <p className="mt-2 text-muted-foreground">Eyes on the big screen.</p>
           <AcePeek slot="excited" />
