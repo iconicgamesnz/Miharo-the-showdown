@@ -25,19 +25,12 @@ export const Route = createFileRoute("/")({
         content:
           "A multiplayer living-room game show where the TV is the show and your phones are the controllers.",
       },
-      {
-        property: "og:title",
-        content: "Mīharo: The Showdown | Iconic Games",
-      },
-      {
-        property: "og:description",
-        content:
-          "The TV is the show, your phones are the controllers, Ace is the host. Up to six players.",
-      },
     ],
   }),
   component: Home,
 });
+
+type SetupMode = "quickie" | "full" | null;
 
 function Home() {
   const navigate = useNavigate();
@@ -45,25 +38,27 @@ function Home() {
   const checkout = useServerFn(createFullGameCheckout);
 
   const [busy, setBusy] = useState(false);
+  const [setupMode, setSetupMode] = useState<SetupMode>(null);
+
   const [nickname, setNickname] = useState("");
   const [selectedBird, setSelectedBird] = useState("");
-  const [email, setEmail] = useState("");
   const [accessCode, setAccessCode] = useState("");
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
-    const savedAccess = window.localStorage.getItem(
-      "iconic:showdown-full-access",
-    );
     const savedNickname = window.localStorage.getItem(
       "iconic:showdown-nickname",
     );
     const savedBird = window.localStorage.getItem(
       "iconic:showdown-bird",
     );
+    const savedAccess = window.localStorage.getItem(
+      "iconic:showdown-full-access",
+    );
 
-    if (savedAccess) setAccessCode(savedAccess);
     if (savedNickname) setNickname(savedNickname);
     if (savedBird) setSelectedBird(savedBird);
+    if (savedAccess) setAccessCode(savedAccess);
 
     const params = new URLSearchParams(window.location.search);
 
@@ -76,31 +71,26 @@ function Home() {
       toast.success(
         "Payment received! Check your email for your Mīharo access code.",
       );
+      setSetupMode("full");
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
 
-  function validatePlayer() {
+  async function createShowdown() {
+    if (!setupMode) return;
+
     if (!nickname.trim()) {
-      toast.error("Enter your player name first.");
-      return false;
+      toast.error("Enter your nickname.");
+      return;
     }
 
     if (!selectedBird) {
-      toast.error("Pick your bird first.");
-      return false;
+      toast.error("Pick your bird.");
+      return;
     }
 
-    return true;
-  }
-
-  async function handleCreate(
-    packSlug: "kiwi-as-quickie" | "kiwi-as-full",
-  ) {
-    if (!validatePlayer()) return;
-
-    if (packSlug === "kiwi-as-full" && !accessCode.trim()) {
-      toast.error("Enter your Full Game access code.");
+    if (setupMode === "full" && !accessCode.trim()) {
+      toast.error("Enter your Full Showdown access code.");
       return;
     }
 
@@ -109,11 +99,16 @@ function Home() {
     try {
       const result = await create({
         data: {
-          packSlug,
+          packSlug:
+            setupMode === "full"
+              ? "kiwi-as-full"
+              : "kiwi-as-quickie",
           hostNickname: nickname.trim(),
           hostCharacterSlug: selectedBird,
-          ...(packSlug === "kiwi-as-full"
-            ? { accessCode: accessCode.trim().toUpperCase() }
+          ...(setupMode === "full"
+            ? {
+                accessCode: accessCode.trim().toUpperCase(),
+              }
             : {}),
         },
       });
@@ -122,12 +117,13 @@ function Home() {
         "iconic:showdown-nickname",
         nickname.trim(),
       );
+
       window.localStorage.setItem(
         "iconic:showdown-bird",
         selectedBird,
       );
 
-      if (packSlug === "kiwi-as-full") {
+      if (setupMode === "full") {
         window.localStorage.setItem(
           "iconic:showdown-full-access",
           accessCode.trim().toUpperCase(),
@@ -140,6 +136,14 @@ function Home() {
         setPlayerToken(result.code, result.playerToken);
       }
 
+      // IMPORTANT: tells /play that this phone already owns Player 1.
+      if (result.playerId) {
+        window.localStorage.setItem(
+          `iconic:playerid:${result.code.toUpperCase()}`,
+          result.playerId,
+        );
+      }
+
       await navigate({
         to: "/play/$code",
         params: { code: result.code },
@@ -150,11 +154,12 @@ function Home() {
           ? error.message
           : "Couldn't start your Showdown.",
       );
+    } finally {
       setBusy(false);
     }
   }
 
-  async function buyFullGame() {
+  async function buyFullShowdown() {
     if (!email.trim()) {
       toast.error("Enter the email for your access code.");
       return;
@@ -173,12 +178,14 @@ function Home() {
 
       if (result.alreadyOwned) {
         toast.message(
-          "That email already owns the Full Game. Use your existing access code.",
+          "That email already owns the Full Showdown. Use your existing access code.",
         );
         return;
       }
 
-      if (result.url) window.location.assign(result.url);
+      if (result.url) {
+        window.location.assign(result.url);
+      }
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -211,98 +218,106 @@ function Home() {
 
         <p className="mt-5 max-w-xl text-lg text-muted-foreground">
           📺 The TV is the show. 📱 Phones are the controllers.
-          👩🏽 Ace is your host. 🐦 Pick a bird and battle it out.
+          👩🏽 Ace is your host. 🐦 Up to six players.
         </p>
 
-        <div className="panel-glow mt-8 p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-neon-lime">
-            Player 1
-          </p>
+        {!setupMode ? (
+          <>
+            <div className="mt-8">
+              <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+                Choose your showdown
+              </h2>
 
-          <h2 className="mt-2 font-display text-2xl">
-            WHO ARE YOU PLAYING AS?
-          </h2>
-
-          <input
-            value={nickname}
-            onChange={(event) => setNickname(event.target.value)}
-            maxLength={20}
-            placeholder="Your player name"
-            className="mt-4 w-full rounded-xl border border-border bg-background px-4 py-3 text-lg"
-          />
-
-          <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-6">
-            {CHARACTERS.map((bird) => {
-              const selected = selectedBird === bird.slug;
-
-              return (
-                <button
-                  key={bird.slug}
-                  type="button"
-                  onClick={() => setSelectedBird(bird.slug)}
-                  className={`rounded-xl border-2 p-2 transition ${
-                    selected
-                      ? "border-neon-lime bg-neon-lime/10"
-                      : "border-border"
-                  }`}
-                >
-                  <BirdAvatar slug={bird.slug} size="md" />
-
-                  <span className="mt-1 block text-xs font-semibold">
-                    {bird.name}
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <section className="panel-glow flex flex-col gap-4 p-6">
+                  <span className="text-xs uppercase tracking-[0.3em] text-neon-lime">
+                    Free · 🇳🇿
                   </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
-        <div className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-muted-foreground">
-            Choose your showdown
-          </h2>
+                  <span className="font-display text-4xl">
+                    <KiwiAsWordmark />
+                  </span>
 
-          <ul className="mt-4 grid gap-4 sm:grid-cols-2">
-            <li className="panel-glow flex flex-col gap-3 p-6">
-              <span className="text-xs uppercase tracking-[0.3em] text-neon-lime">
-                Free · 🇳🇿
-              </span>
+                  <h3 className="font-display text-xl">
+                    BOOST IT FREE
+                  </h3>
 
-              <span className="font-display text-4xl">
-                <KiwiAsWordmark />
-              </span>
+                  <p className="text-sm text-muted-foreground">
+                    Ten Kiwi challenges. No account or purchase needed.
+                  </p>
 
-              <p className="text-sm text-muted-foreground">
-                Ten Kiwi challenges. No account or purchase needed.
-              </p>
+                  <button
+                    type="button"
+                    onClick={() => setSetupMode("quickie")}
+                    className="mt-auto rounded-xl bg-primary px-8 py-4 font-display text-xl text-primary-foreground"
+                  >
+                    START BOOST IT FREE
+                  </button>
+                </section>
 
-              <button
-                onClick={() => handleCreate("kiwi-as-quickie")}
-                disabled={busy}
-                className="mt-auto rounded-xl bg-primary px-8 py-4 font-display text-xl text-primary-foreground disabled:opacity-60"
+                <section className="panel-glow flex flex-col gap-4 p-6">
+                  <span className="text-xs uppercase tracking-[0.3em] text-neon-magenta">
+                    Permanent unlock
+                  </span>
+
+                  <h3 className="font-display text-3xl">
+                    KIWI AS — FULL SHOWDOWN
+                  </h3>
+
+                  <p className="text-sm text-muted-foreground">
+                    Five rounds, 35 challenges, Mana and The Final.
+                  </p>
+
+                  <p className="font-display text-3xl text-neon-lime">
+                    NZ$9.99
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setSetupMode("full")}
+                    className="rounded-xl bg-primary px-8 py-4 font-display text-xl text-primary-foreground"
+                  >
+                    START FULL SHOWDOWN
+                  </button>
+                </section>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <Link
+                to="/join"
+                className="block rounded-xl border-2 border-accent px-8 py-4 text-center font-display text-xl"
               >
-                {busy ? "SETTING UP…" : "START FREE QUICKIE"}
-              </button>
-            </li>
+                JOIN SOMEONE ELSE'S GAME
+              </Link>
+            </div>
+          </>
+        ) : (
+          <section className="panel-glow mt-8 p-6">
+            <button
+              type="button"
+              onClick={() => setSetupMode(null)}
+              className="mb-6 text-sm font-semibold uppercase tracking-widest text-muted-foreground"
+            >
+              ← BACK
+            </button>
 
-            <li className="panel-glow flex flex-col gap-4 p-6">
-              <span className="text-xs uppercase tracking-[0.3em] text-neon-magenta">
-                Full game · permanent unlock
-              </span>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-neon-lime">
+              {setupMode === "full"
+                ? "Kiwi As — Full Showdown"
+                : "Kiwi As — Boost It Free"}
+            </p>
 
-              <span className="font-display text-3xl">
-                KIWI AS — FULL SHOWDOWN
-              </span>
+            <h2 className="mt-2 font-display text-3xl">
+              GET SET UP
+            </h2>
 
-              <p className="text-sm text-muted-foreground">
-                Five rounds, 35 challenges, Mana and The Final.
-              </p>
+            {setupMode === "full" && (
+              <div className="mt-6">
+                <label className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+                  Access code
+                </label>
 
-              <p className="font-display text-3xl text-neon-lime">
-                NZ$9.99
-              </p>
-
-              <div className="grid gap-2">
                 <input
                   value={accessCode}
                   onChange={(event) =>
@@ -312,54 +327,112 @@ function Home() {
                   autoCorrect="off"
                   spellCheck={false}
                   placeholder="MIH-XXXX-XXXX"
-                  className="rounded-xl border-2 border-primary bg-background px-4 py-3 text-center font-display text-lg uppercase tracking-widest"
+                  className="mt-2 w-full rounded-xl border-2 border-primary bg-background px-4 py-4 text-center font-display text-xl uppercase tracking-widest"
                 />
-
-                <button
-                  onClick={() => handleCreate("kiwi-as-full")}
-                  disabled={busy}
-                  className="rounded-xl bg-primary px-5 py-4 font-display text-xl text-primary-foreground disabled:opacity-60"
-                >
-                  {busy ? "SETTING UP…" : "START FULL SHOWDOWN"}
-                </button>
               </div>
+            )}
 
-              <div className="my-1 flex items-center gap-3">
-                <span className="h-px flex-1 bg-border" />
-                <span className="text-xs uppercase tracking-widest text-muted-foreground">
-                  Need access?
-                </span>
-                <span className="h-px flex-1 bg-border" />
-              </div>
+            <div className="mt-6">
+              <label className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+                Nickname
+              </label>
 
               <input
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                type="email"
-                inputMode="email"
-                placeholder="Email for your access code"
-                className="rounded-xl border border-border bg-background px-4 py-3"
+                value={nickname}
+                onChange={(event) =>
+                  setNickname(event.target.value)
+                }
+                maxLength={20}
+                placeholder="Your name"
+                className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-4 text-lg"
               />
+            </div>
 
-              <button
-                onClick={buyFullGame}
-                disabled={busy}
-                className="rounded-xl border-2 border-accent px-5 py-3 font-display text-lg disabled:opacity-60"
-              >
-                UNLOCK FULL GAME — NZ$9.99
-              </button>
-            </li>
-          </ul>
-        </div>
+            <div className="mt-6">
+              <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+                Pick your bird
+              </p>
 
-        <div className="mt-6">
-          <Link
-            to="/join"
-            className="inline-block rounded-xl border-2 border-accent px-8 py-4 text-center font-display text-xl"
-          >
-            JOIN SOMEONE ELSE'S GAME
-          </Link>
-        </div>
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {CHARACTERS.map((bird) => {
+                  const selected =
+                    selectedBird === bird.slug;
+
+                  return (
+                    <button
+                      key={bird.slug}
+                      type="button"
+                      onClick={() =>
+                        setSelectedBird(bird.slug)
+                      }
+                      className={`rounded-xl border-2 p-3 transition ${
+                        selected
+                          ? "border-neon-lime bg-neon-lime/10"
+                          : "border-border"
+                      }`}
+                    >
+                      <BirdAvatar
+                        slug={bird.slug}
+                        size="md"
+                      />
+
+                      <span className="mt-2 block font-display text-sm">
+                        {bird.name}
+                      </span>
+
+                      <span className="text-xs text-muted-foreground">
+                        {bird.personality}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={createShowdown}
+              disabled={busy}
+              className="mt-8 w-full rounded-xl bg-neon-lime px-8 py-4 font-display text-xl text-background disabled:opacity-50"
+            >
+              {busy
+                ? "SETTING UP…"
+                : setupMode === "full"
+                  ? "JOIN THE FULL SHOWDOWN"
+                  : "START BOOST IT FREE"}
+            </button>
+
+            {setupMode === "full" && (
+              <div className="mt-8 border-t border-border pt-6">
+                <p className="text-center text-xs uppercase tracking-widest text-muted-foreground">
+                  Don't have access yet?
+                </p>
+
+                <div className="mt-3 grid gap-2">
+                  <input
+                    value={email}
+                    onChange={(event) =>
+                      setEmail(event.target.value)
+                    }
+                    type="email"
+                    inputMode="email"
+                    placeholder="Email for your access code"
+                    className="rounded-xl border border-border bg-background px-4 py-3"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={buyFullShowdown}
+                    disabled={busy}
+                    className="rounded-xl border-2 border-accent px-5 py-3 font-display"
+                  >
+                    UNLOCK FULL SHOWDOWN — NZ$9.99
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
       </section>
     </main>
   );
