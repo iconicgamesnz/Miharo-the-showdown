@@ -118,6 +118,7 @@ export const createFullGameCheckout = createServerFn({ method: "POST" })
     form.set("cancel_url", `${origin}/?purchase=cancelled`);
     form.set("customer_email", email);
     form.set("client_reference_id", purchase.id);
+    form.set("allow_promotion_codes", "true");
 
     form.set("metadata[game_pack_id]", pack.id);
     form.set("metadata[pack_slug]", data.packSlug);
