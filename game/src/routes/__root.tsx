@@ -139,6 +139,18 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <footer className="mx-auto w-full max-w-5xl border-t border-border px-5 py-8 text-sm text-muted-foreground">
+        <p className="font-semibold text-foreground">Need help with your Showdown purchase?</p>
+        <p className="mt-2 max-w-2xl">
+          Your Full Showdown access code is emailed after payment. If it does not arrive, check your spam or junk folder first. For missing access codes, payment questions or refund help, visit Play Mīharo and include the email address used at checkout.
+        </p>
+        <a
+          href="https://www.playmiharo.co.nz"
+          className="mt-3 inline-block font-semibold text-primary underline underline-offset-4"
+        >
+          Get support at Play Mīharo
+        </a>
+      </footer>
       <Toaster position="top-center" richColors />
     </QueryClientProvider>
 
