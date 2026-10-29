@@ -38,6 +38,7 @@ function Home() {
   const checkout = useServerFn(createFullGameCheckout);
 
   const [busy, setBusy] = useState(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
   const [setupMode, setSetupMode] = useState<SetupMode>(null);
 
   const [nickname, setNickname] = useState("");
@@ -77,19 +78,23 @@ function Home() {
   }, []);
 
   async function createShowdown() {
-    if (!setupMode) return;
+    if (!setupMode || busy) return;
+    setSetupError(null);
 
     if (!nickname.trim()) {
+      setSetupError("Enter your nickname.");
       toast.error("Enter your nickname.");
       return;
     }
 
     if (!selectedBird) {
+      setSetupError("Pick your bird.");
       toast.error("Pick your bird.");
       return;
     }
 
     if (setupMode === "full" && !accessCode.trim()) {
+      setSetupError("Enter your Full Showdown access code.");
       toast.error("Enter your Full Showdown access code.");
       return;
     }
@@ -149,11 +154,11 @@ function Home() {
         params: { code: result.code },
       });
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Couldn't start your Showdown.",
-      );
+      const message = error instanceof Error && error.message
+        ? error.message
+        : "Couldn't start your Showdown. Please try again or contact support.";
+      setSetupError(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -296,7 +301,7 @@ function Home() {
           <section className="panel-glow mt-8 p-6">
             <button
               type="button"
-              onClick={() => setSetupMode(null)}
+              onClick={() => { setSetupMode(null); setSetupError(null); }}
               className="mb-6 text-sm font-semibold uppercase tracking-widest text-muted-foreground"
             >
               ← BACK
@@ -311,6 +316,15 @@ function Home() {
             <h2 className="mt-2 font-display text-3xl">
               GET SET UP
             </h2>
+
+            {setupError && (
+              <div role="alert" className="mt-6 rounded-xl border border-destructive p-4">
+                <p>{setupError}</p>
+                <a href="https://iconicgames.co.nz/contact" className="mt-2 inline-block underline">
+                  Contact support
+                </a>
+              </div>
+            )}
 
             {setupMode === "full" && (
               <div className="mt-6">
@@ -333,7 +347,7 @@ function Home() {
             )}
 
             <div className="mt-6">
-              <label className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+              <label htmlFor="showdown-nickname" className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
                 Nickname
               </label>
 
@@ -342,6 +356,7 @@ function Home() {
                 onChange={(event) =>
                   setNickname(event.target.value)
                 }
+                id="showdown-nickname"
                 maxLength={20}
                 placeholder="Your name"
                 className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-4 text-lg"
@@ -362,6 +377,7 @@ function Home() {
                     <button
                       key={bird.slug}
                       type="button"
+                      aria-pressed={selected}
                       onClick={() =>
                         setSelectedBird(bird.slug)
                       }
@@ -437,3 +453,4 @@ function Home() {
     </main>
   );
 }
+
